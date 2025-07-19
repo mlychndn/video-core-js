@@ -1,5 +1,6 @@
 import Log from "./log";
 import Backend from "./backend";
+import { recordCustomEvent } from "./recordCustomEvent";
 
 /**
  * Static class that sums up core functionalities of the library.
@@ -89,15 +90,8 @@ class Core {
   //   }
   // }
 
-  static send(eventType, attributes = {}) {
-    const backend = Core.getBackend();
-
-    if (!backend || typeof backend.send !== "function") {
-      // Use aggregator to store the event for harvesting
-      aggregator.store("customEvent", eventType, {}, { value: 1 }, attributes);
-    } else {
-      backend.send(eventType, attributes);
-    }
+  static send(event, data) {
+    recordCustomEvent(event, data);
   }
 
   /**
