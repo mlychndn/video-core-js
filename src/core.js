@@ -1,5 +1,5 @@
-import Log from './log'
-import Backend from './backend'
+import Log from "./log";
+import Backend from "./backend";
 
 /**
  * Static class that sums up core functionalities of the library.
@@ -11,15 +11,15 @@ class Core {
    *
    * @param {(Emitter|Tracker)} tracker Tracker instance to add.
    */
-  static addTracker (tracker) {
+  static addTracker(tracker) {
     if (tracker.on && tracker.emit) {
-      trackers.push(tracker)
-      tracker.on('*', eventHandler)
-      if (typeof tracker.trackerInit == 'function') { 
-        tracker.trackerInit(); 
+      trackers.push(tracker);
+      tracker.on("*", eventHandler);
+      if (typeof tracker.trackerInit == "function") {
+        tracker.trackerInit();
       }
     } else {
-      Log.error('Tried to load a non-tracker.', tracker)
+      Log.error("Tried to load a non-tracker.", tracker);
     }
   }
 
@@ -28,11 +28,11 @@ class Core {
    *
    * @param {Tracker} tracker Tracker to remove.
    */
-  static removeTracker (tracker) {
-    tracker.off('*', eventHandler)
-    tracker.dispose()
-    let index = trackers.indexOf(tracker)
-    if (index !== -1) trackers.splice(index, 1)
+  static removeTracker(tracker) {
+    tracker.off("*", eventHandler);
+    tracker.dispose();
+    let index = trackers.indexOf(tracker);
+    if (index !== -1) trackers.splice(index, 1);
   }
 
   /**
@@ -40,8 +40,8 @@ class Core {
    *
    * @returns {Tracker[]} Array of trackers.
    */
-  static getTrackers () {
-    return trackers
+  static getTrackers() {
+    return trackers;
   }
 
   /**
@@ -50,7 +50,7 @@ class Core {
    * @returns {Backend} The current backend.
    */
   static getBackend() {
-    return backend
+    return backend;
   }
 
   /**
@@ -58,7 +58,7 @@ class Core {
    * @param {Backend} backendInstance Backend instance.
    */
   static setBackend(backendInstance) {
-      backend = backendInstance
+    backend = backendInstance;
   }
 
   /**
@@ -66,24 +66,37 @@ class Core {
    * @param {String} event Event to send.
    * @param {Object} data Data associated to the event.
    */
-  static send(event, data) {
-    if (Core.getBackend() == undefined || !(Core.getBackend() instanceof Backend)) {
-        // Use the default backend (NR Agent)
-        if (typeof newrelic !== 'undefined' && newrelic.addPageAction) {
-            newrelic.addPageAction(event, data)
-        } else {
-            if (!isErrorShown) {
-                Log.error(
-                    'newrelic.addPageAction() is not available.',
-                    'In order to use NewRelic Video you will need New Relic Browser Agent.'
-                )
-                isErrorShown = true
-            }
-        }
-    }
-    else {
-        // Use the user-defined backend
-        Core.getBackend().send(event, data)
+  // static send(event, data) {
+  //   if (
+  //     Core.getBackend() == undefined ||
+  //     !(Core.getBackend() instanceof Backend)
+  //   ) {
+  //     // Use the default backend (NR Agent)
+  //     if (typeof newrelic !== "undefined" && newrelic.recordCustomEvent) {
+  //       newrelic.recordCustomEvent(event, data);
+  //     } else {
+  //       if (!isErrorShown) {
+  //         Log.error(
+  //           "newrelic.recordCustomEvent() is not available.",
+  //           "In order to use NewRelic Video you will need New Relic Browser Agent."
+  //         );
+  //         isErrorShown = true;
+  //       }
+  //     }
+  //   } else {
+  //     // Use the user-defined backend
+  //     Core.getBackend().send(event, data);
+  //   }
+  // }
+
+  static send(eventType, attributes = {}) {
+    const backend = Core.getBackend();
+
+    if (!backend || typeof backend.send !== "function") {
+      // Use aggregator to store the event for harvesting
+      aggregator.store("customEvent", eventType, {}, { value: 1 }, attributes);
+    } else {
+      backend.send(eventType, attributes);
     }
   }
 
@@ -94,14 +107,14 @@ class Core {
    *
    * @param {object} att attributes to be sent along the error.
    */
-  static sendError (att) {
-    Core.send('ERROR', att)
+  static sendError(att) {
+    Core.send("ERROR", att);
   }
 }
 
-let trackers = []
+let trackers = [];
 let backend;
-let isErrorShown = false
+let isErrorShown = false;
 
 /**
  * Logs and sends given event.
@@ -109,14 +122,14 @@ let isErrorShown = false
  * @private
  * @param {Event} e Event
  */
-function eventHandler (e) {
-  let data = cleanData(e.data)
+function eventHandler(e) {
+  let data = cleanData(e.data);
   if (Log.level <= Log.Levels.DEBUG) {
-    Log.notice('Sent', e.type, data)
+    Log.notice("Sent", e.type, data);
   } else {
-    Log.notice('Sent', e.type)
+    Log.notice("Sent", e.type);
   }
-  Core.send(e.type, data)
+  Core.send(e.type, data);
 }
 
 /**
@@ -125,12 +138,12 @@ function eventHandler (e) {
  * @param {Object} data Data to clean
  * @returns {Object} Cleaned object
  */
-function cleanData (data) {
-  let ret = {}
+function cleanData(data) {
+  let ret = {};
   for (let i in data) {
-    if (data[i] !== null && typeof data[i] !== 'undefined') ret[i] = data[i]
+    if (data[i] !== null && typeof data[i] !== "undefined") ret[i] = data[i];
   }
-  return ret
+  return ret;
 }
 
-export default Core
+export default Core;
